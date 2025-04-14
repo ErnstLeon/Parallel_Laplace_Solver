@@ -17,7 +17,7 @@
     Template typename T : type used for calculation (double or float)
 
     Solves the Laplace equation ((d/dx)^2 + (d/dy)^2)phi(x,y) = 0
-    using jacobi iterations with cuda. 
+    using jacobi iterations with openmp. 
 
     Returns the x- and y-velocity for each point in a file (excluding the boundary conditions).
     File is binary with ordered like v_x(0, 0), v_y(0, 0), v_x(0, 1), v_y(0, 1) ...
@@ -29,11 +29,11 @@ class flow {
 
 private:
 
-    // Two matrices, storing the (MPI-)local values of phi on the grid
+    // Two matrices, storing the local values of phi on the grid
     // containing old and new values during the iterative solution
     std::array<Matrix, 2> values{};
 
-    // Two matrices to store the (MPI-)local velocities for each point on the grid;
+    // Two matrices to store the local velocities for each point on the grid;
     // first one to hold x-velocity, second to hold y-velocity
     std::array<Matrix, 2> velocity{};
 
@@ -114,6 +114,7 @@ inline void flow<T>::jacobi(int nthreads)
 
         diff = static_cast<T>(0);
 
+        #pragma omp parallel for shared(values, old, next) reduction(+ : diff) num_threads(nthreads)
         for (int i = 1; i < x_dim - 1; ++i) {
             for (int j = 1; j < y_dim - 1; ++j) {
     
@@ -149,6 +150,7 @@ inline void flow<T>::derivative(int nthreads)
     int x_dim = values[0].size_x();
     int y_dim = values[0].size_y();
 
+    #pragma omp parallel for shared(values, velocity) num_threads(nthreads)
     for (int i = 1; i < x_dim - 1; ++i) {
         for (int j = 1; j < y_dim - 1; ++j) {
 
@@ -164,7 +166,7 @@ inline void flow<T>::derivative(int nthreads)
 }
 
 /*
-    Saves the velocities to a file using MPI I/O routines: "x y x_velocity y_velocity"
+    Saves the velocities to a file: "x y x_velocity y_velocity"
 */
 template<typename T>
 int flow<T>::save(const std::string & filename) const

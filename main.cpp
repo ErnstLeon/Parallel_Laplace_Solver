@@ -20,14 +20,6 @@
   #include <flow_type.hpp>
 #endif
 
-#ifndef X_DIM
-#define X_DIM 100
-#endif
-
-#ifndef Y_DIM
-#define Y_DIM 100
-#endif
-
 int main(int argc, char **argv){
 
 #ifdef USE_DOUBLE

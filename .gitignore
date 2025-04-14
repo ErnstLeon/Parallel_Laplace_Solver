@@ -1,0 +1,15 @@
+*
+!.gitignore
+!.gitlab-ci.yml
+!*.py
+!*.pdf
+
+!/*.cpp
+!/*.hpp
+!/meson.build
+
+!/include
+!/include/*.hpp
+
+.vscode/
+.DS_Store

@@ -11,13 +11,53 @@
 
 #include <matrix_type.hpp>
 
+inline cudaError_t checkCuda(cudaError_t result)
+{
+  if (result != cudaSuccess) {
+    throw std::runtime_error("Cuda runtime error: " + std::string(cudaGetErrorString(result)));
+  }
+  return result;
+}
+
+template<typename T>
+__global__ void cuda_jacobi(T* device_matrix_1, T* device_matrix_2, T* diff, T epsilon, int max_iter, int x_dim, int y_dim){
+
+    int x_stride = blockDim.x * gridDim.x;
+    int y_stride = blockDim.y * gridDim.y;
+
+    int iter{};
+
+    do{
+        T local_diff = static_cast<T>(0);
+
+        int old = iter % 2;
+        int next = (iter + 1) % 2;
+
+        for (int x = blockIdx.x * blockDim.x + threadIdx.x; x < x_dim; x += x_stride) 
+        {
+            for (int y = blockIdx.y * blockDim.y + threadIdx.y; y < y_dim; y += y_stride) 
+            {
+                int idx = y_dim * x + y;
+                device_matrix_1[idx] = idx;
+
+                
+            }
+        }
+
+        iter++;
+        atomicAdd(diff, local_diff);
+
+    }while (*diff >= epsilon * epsilon && iter < max_iter);
+
+}
+
 /*
     Class containing routines for solving Laplace equation on a 2D grid with boundary conditions
 
     Template typename T : type used for calculation (double or float)
 
     Solves the Laplace equation ((d/dx)^2 + (d/dy)^2)phi(x,y) = 0
-    using jacobi iterations with openmp. 
+    using jacobi iterations with cuda. 
 
     Returns the x- and y-velocity for each point in a file (excluding the boundary conditions).
     File is binary with ordered like v_x(0, 0), v_y(0, 0), v_x(0, 1), v_y(0, 1) ...
@@ -29,11 +69,11 @@ class flow {
 
 private:
 
-    // Two matrices, storing the (MPI-)local values of phi on the grid
+    // Two matrices, storing the local values of phi on the grid
     // containing old and new values during the iterative solution
     std::array<Matrix, 2> values{};
 
-    // Two matrices to store the (MPI-)local velocities for each point on the grid;
+    // Two matrices to store the local velocities for each point on the grid;
     // first one to hold x-velocity, second to hold y-velocity
     std::array<Matrix, 2> velocity{};
 
@@ -99,11 +139,58 @@ public:
 template<typename T>
 inline void flow<T>::jacobi(int nthreads)
 {
-    T diff{};
-    int iter{};
 
     int x_dim = (values[0]).size_x();
     int y_dim = (values[0]).size_y();
+
+    int deviceId;
+    int numberOfSMs;
+
+    cudaGetDevice(&deviceId);
+    cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, deviceId);
+
+    dim3 threadsPerBlockGrid;
+    dim3 BlockGrid;
+
+    threadsPerBlockGrid = dim3(32, 32);
+    BlockGrid = dim3(16, numberOfSMs);
+
+    T* device_matrix_1;
+    T* device_matrix_2;
+    T* diff;
+    
+    checkCuda(cudaMalloc(&device_matrix_1, x_dim * y_dim * sizeof(T)));
+    checkCuda(cudaMalloc(&device_matrix_2, x_dim * y_dim * sizeof(T)));
+    checkCuda(cudaMalloc(&diff, sizeof(T)));
+    
+    // Copy initial values from host to device
+    checkCuda(cudaMemcpy(device_matrix_1, values[0].data(), x_dim * y_dim * sizeof(T), cudaMemcpyHostToDevice));
+    checkCuda(cudaMemcpy(device_matrix_2, values[1].data(), x_dim * y_dim * sizeof(T), cudaMemcpyHostToDevice));
+    
+    // Launch Jacobi kernel
+    cuda_jacobi<<<BlockGrid, threadsPerBlockGrid>>>(device_matrix_1, device_matrix_2, diff, epsilon, max_iter, x_dim, y_dim);
+    
+    checkCuda(cudaGetLastError());  
+    checkCuda(cudaDeviceSynchronize()); 
+    
+    // Copy result back from device to host
+    checkCuda(cudaMemcpy(values[0].data(), device_matrix_1, x_dim * y_dim * sizeof(T), cudaMemcpyDeviceToHost));
+    checkCuda(cudaMemcpy(values[1].data(), device_matrix_2, x_dim * y_dim * sizeof(T), cudaMemcpyDeviceToHost));
+    
+    checkCuda(cudaFree(device_matrix_1));
+    checkCuda(cudaFree(device_matrix_2));
+
+    for (int i = 0; i < x_dim; ++i) {
+        for (int j = 0; j < y_dim; ++j) {
+            std::cout <<  values[0](i,j) << " ";
+        }
+        std::cout << std::endl;
+    }
+  
+/*
+    T diff{};
+    int iter{};
+
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -114,7 +201,6 @@ inline void flow<T>::jacobi(int nthreads)
 
         diff = static_cast<T>(0);
 
-        #pragma omp parallel for shared(values, old, next) reduction(+ : diff) num_threads(nthreads)
         for (int i = 1; i < x_dim - 1; ++i) {
             for (int j = 1; j < y_dim - 1; ++j) {
     
@@ -137,7 +223,7 @@ inline void flow<T>::jacobi(int nthreads)
 
     auto end_time = std::chrono::high_resolution_clock::now();
     runtime = std::chrono::duration<double>(end_time - start_time);
-
+*/
 }
 
 /*
@@ -150,7 +236,6 @@ inline void flow<T>::derivative(int nthreads)
     int x_dim = values[0].size_x();
     int y_dim = values[0].size_y();
 
-    #pragma omp parallel for shared(values, velocity) num_threads(nthreads)
     for (int i = 1; i < x_dim - 1; ++i) {
         for (int j = 1; j < y_dim - 1; ++j) {
 
@@ -166,7 +251,7 @@ inline void flow<T>::derivative(int nthreads)
 }
 
 /*
-    Saves the velocities to a file using MPI I/O routines: "x y x_velocity y_velocity"
+    Saves the velocities to a file: "x y x_velocity y_velocity"
 */
 template<typename T>
 int flow<T>::save(const std::string & filename) const
