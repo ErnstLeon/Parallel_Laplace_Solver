@@ -3,6 +3,7 @@
 !.gitlab-ci.yml
 !*.py
 !*.pdf
+!*.cu
 
 !/*.cpp
 !/*.hpp

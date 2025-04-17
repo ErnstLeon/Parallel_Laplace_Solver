@@ -25,7 +25,7 @@ executable('main_cuda', 'main.cu',
     include_directories: Fluid_dir,
     dependencies: [cuda_dep],
     cpp_args: ['-std=c++20', '-O3', '-march=native'],
-    cuda_args: ['-arch=sm_75']
+    cuda_args: ['-arch=sm_75', '-Xcompiler=-O3,-march=native']
 )
 
 if cuda_dep.found()

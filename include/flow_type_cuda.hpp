@@ -25,34 +25,37 @@ __global__ void cuda_jacobi(T* old_matrix, T* next_matrix, T* diff, int x_dim, i
     __shared__ float shared_old_matrix[32 + 2][32 + 2];
 
     // Calculate thread index
-    int global_x = blockIdx.x * blockDim.x + threadIdx.x + 1;
-    int global_y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+    int global_x = blockIdx.y * blockDim.y + threadIdx.y + 1;
+    int global_y = blockIdx.x * blockDim.x + threadIdx.x + 1;
 
     // Load data into shared memory
     if (global_x < x_dim && global_y < y_dim) {
-        shared_old_matrix[threadIdx.x + 1][threadIdx.y + 1] = old_matrix[global_x * y_dim + global_y];
+        shared_old_matrix[threadIdx.y + 1][threadIdx.x + 1] = old_matrix[global_x * y_dim + global_y];
     }
 
-    if (threadIdx.x == 0 && global_y < y_dim){
-        shared_old_matrix[0][threadIdx.y + 1] = old_matrix[(global_x - 1) * y_dim + global_y];
-    }
-    if (threadIdx.x == blockDim.x - 1 && global_y < y_dim && global_x < x_dim){
-        shared_old_matrix[blockDim.x + 1][threadIdx.y + 1] = old_matrix[(global_x + 1) * y_dim + global_y];
-    }
-    if (threadIdx.y == 0 && global_x < x_dim){
-        shared_old_matrix[threadIdx.x + 1][0] = old_matrix[(global_x) * y_dim + global_y - 1];
+    if (threadIdx.y == 0 && global_y < y_dim){
+        shared_old_matrix[0][threadIdx.x + 1] = old_matrix[(global_x - 1) * y_dim + global_y];
     }
     if (threadIdx.y == blockDim.y - 1 && global_y < y_dim && global_x < x_dim){
-        shared_old_matrix[threadIdx.x + 1][blockDim.y + 1] = old_matrix[(global_x) * y_dim + global_y + 1];
+        shared_old_matrix[blockDim.y + 1][threadIdx.x + 1] = old_matrix[(global_x + 1) * y_dim + global_y];
+    }
+    if (threadIdx.x == 0 && global_x < x_dim){
+        shared_old_matrix[threadIdx.y + 1][0] = old_matrix[(global_x) * y_dim + global_y - 1];
+    }
+    if (threadIdx.x == blockDim.x - 1 && global_y < y_dim && global_x < x_dim){
+        shared_old_matrix[threadIdx.y + 1][blockDim.x + 1] = old_matrix[(global_x) * y_dim + global_y + 1];
     }
 
     __syncthreads();
 
     if (global_x < x_dim - 1 && global_y < y_dim - 1) {
 
-        T tmp_value = static_cast<T>(0.25) *
-        (shared_old_matrix[threadIdx.x][threadIdx.y + 1] + shared_old_matrix[threadIdx.x + 2][threadIdx.y + 1] +
-            shared_old_matrix[threadIdx.x + 1][threadIdx.y] + shared_old_matrix[threadIdx.x + 1][threadIdx.y + 2]);
+        T top    = shared_old_matrix[threadIdx.y][threadIdx.x + 1];
+        T bottom = shared_old_matrix[threadIdx.y + 2][threadIdx.x + 1];
+        T left   = shared_old_matrix[threadIdx.y + 1][threadIdx.x];
+        T right  = shared_old_matrix[threadIdx.y + 1][threadIdx.x + 2];
+
+        T tmp_value = static_cast<T>(0.25) * (top + bottom + left + right);
 
         next_matrix[global_x * y_dim + global_y] = tmp_value;
     }
