@@ -1,6 +1,6 @@
 project('Fluid', 'cpp', 'cuda')
 
-Fluid_dir = include_directories('.')
+Fluid_dir = include_directories('./include')
 
 omp_dep = dependency('openmp', required: true)
 mpi_dep = dependency('mpi', language: 'cpp', required: false)

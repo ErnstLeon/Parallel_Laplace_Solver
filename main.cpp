@@ -29,8 +29,8 @@ int main(int argc, char **argv){
 #endif
 
   int nthreads = 1;
-  int x_dim = 10;
-  int y_dim = 10;
+  int x_dim = 100;
+  int y_dim = 100;
 
   for(char ** arg = argv; *arg != NULL; ++arg){
     if(strcmp(*arg, "-nthreads") == 0){

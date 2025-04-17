@@ -133,10 +133,10 @@ inline void flow<T>::jacobi(int nthreads)
 
     }while (diff >= epsilon * epsilon && iter < max_iter);
 
-    if(iter == max_iter) std::cerr << "maximum number of iterations reached, diff: " << diff << std::endl;
-
     auto end_time = std::chrono::high_resolution_clock::now();
     runtime = std::chrono::duration<double>(end_time - start_time);
+
+    if(iter == max_iter) std::cerr << "maximum number of iterations reached, diff: " << diff << std::endl;
 
 }
 

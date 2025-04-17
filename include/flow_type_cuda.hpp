@@ -20,35 +20,42 @@ inline cudaError_t checkCuda(cudaError_t result)
 }
 
 template<typename T>
-__global__ void cuda_jacobi(T* device_matrix_1, T* device_matrix_2, T* diff, T epsilon, int max_iter, int x_dim, int y_dim){
+__global__ void cuda_jacobi(T* old_matrix, T* next_matrix, T* diff, int x_dim, int y_dim){
 
-    int x_stride = blockDim.x * gridDim.x;
-    int y_stride = blockDim.y * gridDim.y;
+    __shared__ float shared_old_matrix[32 + 2][32 + 2];
 
-    int iter{};
+    // Calculate thread index
+    int global_x = blockIdx.x * blockDim.x + threadIdx.x + 1;
+    int global_y = blockIdx.y * blockDim.y + threadIdx.y + 1;
 
-    do{
-        T local_diff = static_cast<T>(0);
+    // Load data into shared memory
+    if (global_x < x_dim && global_y < y_dim) {
+        shared_old_matrix[threadIdx.x + 1][threadIdx.y + 1] = old_matrix[global_x * y_dim + global_y];
+    }
 
-        int old = iter % 2;
-        int next = (iter + 1) % 2;
+    if (threadIdx.x == 0 && global_y < y_dim){
+        shared_old_matrix[0][threadIdx.y + 1] = old_matrix[(global_x - 1) * y_dim + global_y];
+    }
+    if (threadIdx.x == blockDim.x - 1 && global_y < y_dim && global_x < x_dim){
+        shared_old_matrix[blockDim.x + 1][threadIdx.y + 1] = old_matrix[(global_x + 1) * y_dim + global_y];
+    }
+    if (threadIdx.y == 0 && global_x < x_dim){
+        shared_old_matrix[threadIdx.x + 1][0] = old_matrix[(global_x) * y_dim + global_y - 1];
+    }
+    if (threadIdx.y == blockDim.y - 1 && global_y < y_dim && global_x < x_dim){
+        shared_old_matrix[threadIdx.x + 1][blockDim.y + 1] = old_matrix[(global_x) * y_dim + global_y + 1];
+    }
 
-        for (int x = blockIdx.x * blockDim.x + threadIdx.x; x < x_dim; x += x_stride) 
-        {
-            for (int y = blockIdx.y * blockDim.y + threadIdx.y; y < y_dim; y += y_stride) 
-            {
-                int idx = y_dim * x + y;
-                device_matrix_1[idx] = idx;
+    __syncthreads();
 
-                
-            }
-        }
+    if (global_x < x_dim - 1 && global_y < y_dim - 1) {
 
-        iter++;
-        atomicAdd(diff, local_diff);
+        T tmp_value = static_cast<T>(0.25) *
+        (shared_old_matrix[threadIdx.x][threadIdx.y + 1] + shared_old_matrix[threadIdx.x + 2][threadIdx.y + 1] +
+            shared_old_matrix[threadIdx.x + 1][threadIdx.y] + shared_old_matrix[threadIdx.x + 1][threadIdx.y + 2]);
 
-    }while (*diff >= epsilon * epsilon && iter < max_iter);
-
+        next_matrix[global_x * y_dim + global_y] = tmp_value;
+    }
 }
 
 /*
@@ -114,12 +121,12 @@ public:
         velocity{Matrix(init.size_x(), init.size_y()), Matrix(init.size_x(), init.size_y())},
         epsilon{epsilon} {}
 
-    void jacobi(int);
-    void derivative(int);
+    void jacobi();
+    void derivative();
     
-    void solve(int nthreads){
-        jacobi(nthreads);
-        derivative(nthreads);
+    void solve(){
+        jacobi();
+        derivative();
     }
 
     T get_runtime() const
@@ -137,7 +144,7 @@ public:
     Solves the grid using jacobi iterations with openmp parallelization
 */
 template<typename T>
-inline void flow<T>::jacobi(int nthreads)
+inline void flow<T>::jacobi()
 {
 
     int x_dim = (values[0]).size_x();
@@ -153,25 +160,43 @@ inline void flow<T>::jacobi(int nthreads)
     dim3 BlockGrid;
 
     threadsPerBlockGrid = dim3(32, 32);
-    BlockGrid = dim3(16, numberOfSMs);
+    BlockGrid = dim3((x_dim - 2 + 31) / 32, (y_dim - 2 + 31) / 32);
 
     T* device_matrix_1;
     T* device_matrix_2;
-    T* diff;
+    T* device_diff;
+    T* host_diff;
+
+    auto start_time = std::chrono::high_resolution_clock::now();
     
     checkCuda(cudaMalloc(&device_matrix_1, x_dim * y_dim * sizeof(T)));
     checkCuda(cudaMalloc(&device_matrix_2, x_dim * y_dim * sizeof(T)));
-    checkCuda(cudaMalloc(&diff, sizeof(T)));
+    checkCuda(cudaMalloc(&device_diff, sizeof(T)));
+    checkCuda(cudaHostAlloc(&host_diff, sizeof(T), cudaHostAllocDefault));
     
     // Copy initial values from host to device
     checkCuda(cudaMemcpy(device_matrix_1, values[0].data(), x_dim * y_dim * sizeof(T), cudaMemcpyHostToDevice));
     checkCuda(cudaMemcpy(device_matrix_2, values[1].data(), x_dim * y_dim * sizeof(T), cudaMemcpyHostToDevice));
+    checkCuda(cudaMemcpy(device_diff, host_diff, sizeof(T), cudaMemcpyHostToDevice));
     
+    int iter{};
+    T* device_matrices[2] = {device_matrix_1, device_matrix_2};
+
     // Launch Jacobi kernel
-    cuda_jacobi<<<BlockGrid, threadsPerBlockGrid>>>(device_matrix_1, device_matrix_2, diff, epsilon, max_iter, x_dim, y_dim);
+    do{
+        int old = iter % 2;
+        int next = (iter + 1) % 2;
+
+        *host_diff = static_cast<T>(0);
+
+        cuda_jacobi<<<BlockGrid, threadsPerBlockGrid>>>(device_matrices[old], device_matrices[next], device_diff, x_dim, y_dim);
+
+        ++iter;
+        result_id = next;
+
+    }while (iter < max_iter);
     
     checkCuda(cudaGetLastError());  
-    checkCuda(cudaDeviceSynchronize()); 
     
     // Copy result back from device to host
     checkCuda(cudaMemcpy(values[0].data(), device_matrix_1, x_dim * y_dim * sizeof(T), cudaMemcpyDeviceToHost));
@@ -179,51 +204,13 @@ inline void flow<T>::jacobi(int nthreads)
     
     checkCuda(cudaFree(device_matrix_1));
     checkCuda(cudaFree(device_matrix_2));
-
-    for (int i = 0; i < x_dim; ++i) {
-        for (int j = 0; j < y_dim; ++j) {
-            std::cout <<  values[0](i,j) << " ";
-        }
-        std::cout << std::endl;
-    }
-  
-/*
-    T diff{};
-    int iter{};
-
-
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    do
-    {
-        int old = iter % 2;
-        int next = (iter + 1) % 2;
-
-        diff = static_cast<T>(0);
-
-        for (int i = 1; i < x_dim - 1; ++i) {
-            for (int j = 1; j < y_dim - 1; ++j) {
-    
-                T tmp_value = 
-                (values[old](i - 1, j) + values[old](i + 1, j) + 
-                    values[old](i, j - 1) + values[old](i, j + 1)) * static_cast<T>(0.25);
-
-                diff += (tmp_value - values[old](i, j)) * (tmp_value - values[old](i, j));
-                values[next](i, j) = tmp_value;
-
-            }
-        }
-
-        ++iter;
-        result_id = next;
-
-    }while (diff >= epsilon * epsilon && iter < max_iter);
-
-    if(iter == max_iter) std::cerr << "maximum number of iterations reached, diff: " << diff << std::endl;
+    checkCuda(cudaFreeHost(host_diff));
 
     auto end_time = std::chrono::high_resolution_clock::now();
     runtime = std::chrono::duration<double>(end_time - start_time);
-*/
+
+    if(iter == max_iter) std::cerr << "maximum number of iterations reached" << std::endl;
+
 }
 
 /*
@@ -231,7 +218,7 @@ inline void flow<T>::jacobi(int nthreads)
     (excluding the boundary conditions)
 */
 template<typename T>
-inline void flow<T>::derivative(int nthreads)
+inline void flow<T>::derivative()
 {
     int x_dim = values[0].size_x();
     int y_dim = values[0].size_y();
