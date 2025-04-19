@@ -243,7 +243,8 @@ inline void flow<T>::jacobi(int nthreads)
         ++iter;
         result_id = next;
 
-    }while (global_diff >= epsilon * epsilon && iter < max_iter);
+//    }while (global_diff >= epsilon * epsilon && iter < max_iter);
+    }while (iter < max_iter);
 
     if(iter == max_iter && grid.get_cart_comm_me() == 0) std::cerr << "maximum number of iterations reached, diff: " << global_diff << std::endl;
 

@@ -131,7 +131,8 @@ inline void flow<T>::jacobi(int nthreads)
         ++iter;
         result_id = next;
 
-    }while (diff >= epsilon * epsilon && iter < max_iter);
+//    }while (diff >= epsilon * epsilon && iter < max_iter);
+    }while (iter < max_iter);
 
     auto end_time = std::chrono::high_resolution_clock::now();
     runtime = std::chrono::duration<double>(end_time - start_time);

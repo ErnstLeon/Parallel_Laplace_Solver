@@ -12,5 +12,10 @@
 !/include
 !/include/*.hpp
 
+!/tests
+!/tests/*.cu
+!/tests/*.cpp
+!/tests/meson.build
+
 .vscode/
 .DS_Store
