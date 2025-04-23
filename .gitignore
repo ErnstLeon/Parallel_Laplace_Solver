@@ -8,6 +8,7 @@
 !/*.cpp
 !/*.hpp
 !/meson.build
+!/README.md
 
 !/include
 !/include/*.hpp
