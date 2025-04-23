@@ -49,7 +49,7 @@ int main(int argc, char **argv){
   for(int i = 3 * y_dim / 4; i < y_dim; ++i) init(0, i) = T(7);
 
 
-  flow<T> psi {std::move(init), 1e-6};
+  flow<T> psi {std::move(init), 10000};
   psi.solve();
 
   std::cout << psi.get_runtime() << std::endl;

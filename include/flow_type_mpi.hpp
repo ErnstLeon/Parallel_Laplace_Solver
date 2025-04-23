@@ -23,7 +23,7 @@
 
     Solves the Laplace equation ((d/dx)^2 + (d/dy)^2)phi(x,y) = 0
     using jacobi iterations, distributing the 2D grid over some processes
-    and doing the jacobi iteration internally using openmp. 
+    and doing the jacobi iteration internally using mpi in combination with openmp. 
 
     Returns the x- and y-velocity for each point in a file (excluding the boundary conditions).
     File is binary with ordered like v_x(0, 0), v_y(0, 0), v_x(0, 1), v_y(0, 1) ...
@@ -109,9 +109,9 @@ public:
     }
 
     // Constructor with matrix containing the boundary conditions in the outer
-    // column and row and initial values in the inner matrix and given epsilon
-    flow(const Matrix& init, T epsilon) : 
-    values{}, velocity{}, epsilon{epsilon}, grid{init.size_x(), init.size_y()}
+    // column and row and initial values in the inner matrix and given max_iter
+    flow(const Matrix& init, int max_iter) : 
+    values{}, velocity{}, max_iter{max_iter}, grid{init.size_x(), init.size_y()}
     {
         // resize the matrices to the shape of the (MPI-)local grid
         values[0].resize(grid.get_x_size(), grid.get_y_size());
@@ -134,9 +134,9 @@ public:
     }
 
     // Constructor with rvalue matrix containing the boundary conditions in the outer
-    // column and row and initial values in the inner matrix and given epsilon
-    flow(Matrix&& init, T epsilon) noexcept : 
-    values{}, velocity{}, epsilon{epsilon}, grid{init.size_x(), init.size_y()}
+    // column and row and initial values in the inner matrix and given max_iter
+    flow(Matrix&& init, int max_iter) noexcept : 
+    values{}, velocity{}, max_iter{max_iter}, grid{init.size_x(), init.size_y()}
     {
         // resize the matrices to the shape of the (MPI-)local grid
         values[0].resize(grid.get_x_size(), grid.get_y_size());
@@ -245,8 +245,6 @@ inline void flow<T>::jacobi(int nthreads)
 
 //    }while (global_diff >= epsilon * epsilon && iter < max_iter);
     }while (iter < max_iter);
-
-    if(iter == max_iter && grid.get_cart_comm_me() == 0) std::cerr << "maximum number of iterations reached, diff: " << global_diff << std::endl;
 
     auto end_time = MPI_Wtime();
     runtime = (end_time - start_time);

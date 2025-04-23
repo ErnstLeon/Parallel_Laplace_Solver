@@ -52,7 +52,7 @@ int main(int argc, char **argv){
   for(int i = y_dim / 2 + 1; i < 3 * y_dim / 4; ++i) init(0, i) = T(7) + (T(3) * T(y_dim) / T(4) - T(i)) * T(28) / T(y_dim);
   for(int i = 3 * y_dim / 4; i < y_dim; ++i) init(0, i) = T(7);
 
-  flow<T> psi {std::move(init), 1e-6};
+  flow<T> psi {std::move(init), 10000};
   psi.solve(nthreads);
 
   std::cout << psi.get_runtime() << std::endl;

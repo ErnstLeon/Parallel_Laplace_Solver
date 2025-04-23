@@ -67,7 +67,7 @@ int main(int argc, char **argv){
   MPI_Init(&argc, &argv);
 #endif
 
-  flow<T> psi {std::move(init), 1e-6};
+  flow<T> psi {std::move(init), 10000};
   psi.solve(nthreads);
 
   std::cout << psi.get_runtime() << std::endl;

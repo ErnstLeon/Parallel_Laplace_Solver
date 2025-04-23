@@ -61,18 +61,18 @@ public:
         velocity{Matrix(init.size_x(), init.size_y()), Matrix(init.size_x(), init.size_y())} {}
 
     // Constructor with matrix containing the boundary conditions in the outer
-    // column and row and initial values in the inner matrix and given epsilon
-    flow(const Matrix& init, T epsilon) : 
+    // column and row and initial values in the inner matrix and given max_iter
+    flow(const Matrix& init, int max_iter) : 
         values{Matrix(init), Matrix(init)},
         velocity{Matrix(init.size_x(), init.size_y()), Matrix(init.size_x(), init.size_y())},
-        epsilon{epsilon} {}
+        max_iter{max_iter} {}
 
     // Constructor with rvalue matrix containing the boundary conditions in the outer
-    // column and row and initial values in the inner matrix and given epsilon
-    flow(Matrix&& init, T epsilon) noexcept : 
+    // column and row and initial values in the inner matrix and given max_iter
+    flow(Matrix&& init, int max_iter) noexcept : 
         values{Matrix(init), Matrix(std::move(init))}, 
         velocity{Matrix(init.size_x(), init.size_y()), Matrix(init.size_x(), init.size_y())},
-        epsilon{epsilon} {}
+        max_iter{max_iter} {}
 
     void jacobi(int);
     void derivative(int);
@@ -136,8 +136,6 @@ inline void flow<T>::jacobi(int nthreads)
 
     auto end_time = std::chrono::high_resolution_clock::now();
     runtime = std::chrono::duration<double>(end_time - start_time);
-
-    if(iter == max_iter) std::cerr << "maximum number of iterations reached, diff: " << diff << std::endl;
 
 }
 
