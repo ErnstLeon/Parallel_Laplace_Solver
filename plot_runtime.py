@@ -1,49 +1,25 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
 
-def plot_runtime(filename):
-    data = {}
-    with open(filename, 'r') as f:
-        for line in f:
-            threads, runtime = map(float, line.split())
-            if threads not in data:
-                data[threads] = []
-            data[threads].append(runtime)
+# Load the data
+omp = np.loadtxt('runtime_omp.dat')
+mpi = np.loadtxt('runtime_mpi.dat')
+cuda = np.loadtxt('runtime_cuda.dat')
 
-    # Prepare data for plotting
-    threads = []
-    mean_runtimes = []
-    errors = []
+# Plot
+plt.figure(figsize=(10, 6))
+plt.plot(omp[:, 0], omp[:, 1], marker='o', label='OpenMP - 6 Threads')
+plt.plot(mpi[:, 0], mpi[:, 1], marker='s', label='MPI - 6 Processes / 6 Threads')
+plt.plot(cuda[:, 0], cuda[:, 1], marker='^', label='CUDA - Gforce RTX2060')
 
-    for thread_count, runtimes in data.items():
-        threads.append(thread_count)
-        mean_runtimes.append(np.mean(runtimes))
-        std_dev = np.std(runtimes)  # Standard deviation
-        n = len(runtimes)  # Number of data points (should be 10)
-        sem = std_dev / np.sqrt(n)  # Standard error of the mean
-        errors.append(sem)
+# Formatting
+#plt.xscale('log')
+#plt.yscale('log')
+plt.xlabel('Grid size')
+plt.ylabel('Runtime (s)')
+plt.title('Performance Comparison')
+plt.legend()
+plt.grid(True, which="both", ls="--")
 
-    # Convert to numpy arrays for plotting
-    threads = np.array(threads)
-    mean_runtimes = np.array(mean_runtimes)
-    errors = np.array(errors)
-
-    # Plot with error bars
-    plt.errorbar(threads, mean_runtimes, yerr=errors, fmt='o', capsize=5, label='Runtime', color='blue')
-
-    # Add labels and title
-    plt.xlabel('Number of Threads')
-    plt.ylabel('Runtime (seconds)')
-    plt.title('Runtime vs Number of Threads')
-
-    # Show the legend
-    plt.legend()
-
-    # Sace the plot
-    plt.savefig("./omp_runtime.pdf")
-
-if __name__ == "__main__":
-
-    filename = sys.argv[1]
-    plot_runtime(filename)
+plt.tight_layout()
+plt.savefig('performance_plot.pdf')
