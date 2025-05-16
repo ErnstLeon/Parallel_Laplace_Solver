@@ -1,4 +1,5 @@
-project('Fluid', 'cpp')
+project('Fluid', ['cpp','cuda'])
+#project('Fluid', 'cpp')
 
 Fluid_dir = include_directories('./include')
 

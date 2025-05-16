@@ -184,8 +184,6 @@ inline void flow<T>::jacobi()
 
     T* device_matrix_1;
     T* device_matrix_2;
-    T* device_diff;
-    T* host_diff;
 
     auto start_time = std::chrono::high_resolution_clock::now();
     
