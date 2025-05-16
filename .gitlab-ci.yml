@@ -44,7 +44,7 @@ run_all:
     - ./test_omp -x_dim 100 -y_dim 100 -nthreads 4
     - which mpirun
 #    - ./test_cuda -x_dim 10 -y_dim 10
-    - mpirun --allow-run-as-root -np 4 ./test_mpi -x_dim 100 -y_dim 100
+    - mpirun --allow-run-as-root -np 4 ./test_mpi -x_dim 100 -y_dim 100 -nthreads 4
   artifacts:
     expire_in: 7 days
     paths:
