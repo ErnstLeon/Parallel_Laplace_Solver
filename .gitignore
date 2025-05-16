@@ -4,6 +4,7 @@
 !*.py
 !*.pdf
 !*.cu
+!*.dat
 
 !/*.cpp
 !/*.hpp
