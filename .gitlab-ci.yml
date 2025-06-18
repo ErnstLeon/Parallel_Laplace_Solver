@@ -17,19 +17,19 @@ build_all:
     - apt-get install --yes gfortran-12
     - ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran
     - apt-get install --yes openmpi-bin libopenmpi-dev
-    - cd tests
+    - cd test
     - meson setup builddir
   script:
-    - cd ${CI_PROJECT_DIR}/tests/builddir
+    - cd ${CI_PROJECT_DIR}/test/builddir
     - meson compile test_omp
 #    - meson compile test_cuda
     - meson compile test_mpi
   artifacts:
     expire_in: 7 days
     paths:
-      - ${CI_PROJECT_DIR}/tests/builddir/test_omp
-#     - ${CI_PROJECT_DIR}/tests/builddir/test_cuda
-      - ${CI_PROJECT_DIR}/tests/builddir/test_mpi
+      - ${CI_PROJECT_DIR}/test/builddir/test_omp
+#     - ${CI_PROJECT_DIR}/test/builddir/test_cuda
+      - ${CI_PROJECT_DIR}/test/builddir/test_mpi
 
 run_all:
   stage: run
@@ -40,7 +40,7 @@ run_all:
     - ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran
     - apt-get install --yes openmpi-bin libopenmpi-dev
   script:
-    - cd ${CI_PROJECT_DIR}/tests/builddir
+    - cd ${CI_PROJECT_DIR}/test/builddir
     - ./test_omp -x_dim 100 -y_dim 100 -nthreads 4
     - which mpirun
 #    - ./test_cuda -x_dim 10 -y_dim 10
@@ -48,13 +48,13 @@ run_all:
   artifacts:
     expire_in: 7 days
     paths:
-      - ${CI_PROJECT_DIR}/tests/builddir/velocities_out_omp.dat
-#     - ${CI_PROJECT_DIR}/tests/builddir/velocities_out_cuda.dat
-      - ${CI_PROJECT_DIR}/tests/builddir/velocities_out_mpi.dat
+      - ${CI_PROJECT_DIR}/test/builddir/velocities_out_omp.dat
+#     - ${CI_PROJECT_DIR}/test/builddir/velocities_out_cuda.dat
+      - ${CI_PROJECT_DIR}/test/builddir/velocities_out_mpi.dat
 
 compare_outputs:
   stage: compare
   script:
-#    - diff ${CI_PROJECT_DIR}/tests/builddir/velocities_out_omp.dat ${CI_PROJECT_DIR}/tests/builddir/velocities_out_cuda.dat
-    - diff ${CI_PROJECT_DIR}/tests/builddir/velocities_out_omp.dat ${CI_PROJECT_DIR}/tests/builddir/velocities_out_mpi.dat
-#    - diff ${CI_PROJECT_DIR}/tests/builddir/velocities_out_cuda.dat ${CI_PROJECT_DIR}/tests/builddir/velocities_out_mpi.dat
+#    - diff ${CI_PROJECT_DIR}/test/builddir/velocities_out_omp.dat ${CI_PROJECT_DIR}/test/builddir/velocities_out_cuda.dat
+    - diff ${CI_PROJECT_DIR}/test/builddir/velocities_out_omp.dat ${CI_PROJECT_DIR}/test/builddir/velocities_out_mpi.dat
+#    - diff ${CI_PROJECT_DIR}/test/builddir/velocities_out_cuda.dat ${CI_PROJECT_DIR}/test/builddir/velocities_out_mpi.dat

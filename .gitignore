@@ -1,23 +1,24 @@
 *
 !.gitignore
 !.gitlab-ci.yml
-!*.py
-!*.pdf
-!*.cu
-!*.dat
 
-!/*.cpp
-!/*.hpp
-!/meson.build
-!/README.md
+!/example
+!/example/*.cu
+!/example/*.cpp
+!/example/*.dat
+!/example/*.pdf
+!/example/*.py
+!/example/meson.build
 
 !/include
 !/include/*.hpp
+!/include/base/
+!/include/base/*.hpp
 
-!/tests
-!/tests/*.cu
-!/tests/*.cpp
-!/tests/meson.build
+!/test
+!/test/*.cu
+!/test/*.cpp
+!/test/meson.build
 
 .vscode/
 .DS_Store

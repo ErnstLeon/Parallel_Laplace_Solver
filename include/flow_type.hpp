@@ -9,8 +9,10 @@
 #include <cstring>
 #include <iostream>
 
-#include <matrix_type.hpp>
+#include "base/matrix_type.hpp"
 
+namespace flow
+{
 /*
     Class containing routines for solving Laplace equation on a 2D grid with boundary conditions
 
@@ -229,6 +231,7 @@ int flow<T>::save_and_plot(const std::string & filename) const
     } 
 
     return 0;
+}
 }
 
 #endif // FLOW_TYPE_H

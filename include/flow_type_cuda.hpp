@@ -9,8 +9,10 @@
 #include <cstring>
 #include <iostream>
 
-#include <matrix_type.hpp>
+#include "base/matrix_type.hpp"
 
+namespace flow
+{
 /*
     Routine to catch cuda errors and throw runtime error 
 */
@@ -313,6 +315,7 @@ int flow<T>::save_and_plot(const std::string & filename) const
     } 
 
     return 0;
+}
 }
 
 #endif // FLOW_TYPE_H
