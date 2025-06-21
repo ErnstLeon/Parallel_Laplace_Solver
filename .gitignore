@@ -6,7 +6,7 @@
 !/example/*.cu
 !/example/*.cpp
 !/example/*.dat
-!/example/*.pdf
+!/example/*.png
 !/example/*.py
 !/example/meson.build
 

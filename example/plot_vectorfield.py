@@ -73,7 +73,7 @@ def plot_velocity_field(filename, global_x_size, global_y_size, precision):
 
     fig.colorbar(c, ax=ax)
 
-    outputname = os.path.splitext(filename)[0] + ".pdf"
+    outputname = os.path.splitext(filename)[0] + ".png"
     plt.savefig(outputname)
 
 
@@ -84,4 +84,4 @@ if __name__ == "__main__":
     global_y_size = int(sys.argv[3])
     precision = str(sys.argv[4])
 
-    plot_velocity_field(binary_filename, global_x_size, global_y_size, precision)
+    plot_velocity_field(binary_filename, global_x_size - 2, global_y_size - 2, precision)
