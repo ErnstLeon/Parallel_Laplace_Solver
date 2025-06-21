@@ -175,8 +175,6 @@ public:
         return runtime;
     }
 
-    int save_and_plot(const std::string & filename) const;
-
     int save(const std::string & filename) const;
 
     void cleanup() {
@@ -336,46 +334,6 @@ int flow<T>::save(const std::string & filename) const
     return 0;
 }
 
-/*
-    Saves the velocities to a file and plots the result
-*/
-template<typename T>
-int flow<T>::save_and_plot(const std::string & filename) const
-{
-    save(filename);
-
-    std::string x_size_str = std::to_string(grid.get_global_x_size());
-    std::string y_size_str = std::to_string(grid.get_global_y_size());
-
-    if(grid.get_cart_comm_me() == 0){
-        pid_t pid = fork();
-
-        std::string precision;
-        if constexpr (std::is_same_v<T, double>) {
-            precision = "double";
-        } 
-        else if constexpr (std::is_same_v<T, float>) {
-            precision = "single";
-        }
-
-        if (pid == 0) {  
-            char* const args[] = {
-                (char*)"/plot_env/bin/python3", 
-                (char*)"/plot_vectorfield.py", 
-                (char*)filename.c_str(), 
-                (char*)x_size_str.c_str(), 
-                (char*)y_size_str.c_str(), 
-                (char*)precision.c_str(), NULL};
-
-            if(execve("/plot_env/bin/python3", args, NULL) == -1){
-                throw std::runtime_error("execve failed for plotting");
-            }
-
-        } 
-    }
-
-    return 0;
-}
 }
 
 #endif // FLOW_TYPE_MPI_H
