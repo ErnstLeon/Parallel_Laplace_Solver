@@ -76,8 +76,8 @@ python3 plot_vectorfield.py velocities_out.dat x_dimension y_dimension precision
 
 ### Build and Run
 You can build and run different versions depending on your system capabilities.
-#### Using omp
-Compile manually, using omp:
+#### Using OMP
+Compile manually, using OMP:
 
 ```bash
 g++ -Wall -std=c++20 -O3 -march=native -fopenmp -I../include -o main_omp main.cpp
@@ -94,8 +94,8 @@ and run with:
 - `-y_dim` sets the grid size in y dimension (default = 100)
 - `-nthreads` sets the number of threads used (default = 1)
 
-#### Using MPI + omp
-For using MPI + omp, compile with:
+#### Using MPI + OMP
+For using MPI + OMP, compile with:
 
 ```bash
 mpic++ -DMPI_FOUND -Wall -std=c++20 -O3 -march=native -fopenmp -I../include -o main_mpi main.cpp
@@ -114,8 +114,8 @@ mpirun -np 4 ./main_mpi -x_dim 100 -y_dim 100 -nthreads 8
 - `-nthreads` sets the number of threads used (default = 1)
 - add `--hostfile hostfile` to run on serveral machines
 
-#### Using Cuda
-For using Cuda, you can compile the example using:
+#### Using CUDA
+For using CUDA, you can compile the example using:
 ```bash
 nvcc -Xcompiler=-std=c++20,-O3,-march=native -I../include -o main_cuda main.cu
 ```
