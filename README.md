@@ -117,9 +117,13 @@ mpirun -np 4 ./main_mpi -x_dim 100 -y_dim 100 -nthreads 8
 #### Using CUDA
 For using CUDA, you can compile the example using:
 ```bash
-nvcc -Xcompiler=-std=c++20,-O3,-march=native -I../include -o main_cuda main.cu
+nvcc -Xcompiler="-std=c++20 -O3 -march=native" -std=c++20 -O3 -arch=sm_75 -I../include -o main_cuda main.cu
 ```
 Add `-DUSE_DOUBLE` to enable double precision.
+
+:warning: change `-arch=` to your system!
+
+:warning: only works for square problems right now!
 
 and run with:
 
@@ -147,3 +151,5 @@ meson compile main_cuda
 project('Fluid', ['cpp', 'cuda'])  # Enable both C++ and CUDA languages; requires nvcc at configure time
 # project('Fluid', 'cpp')          # Enable only C++ language; no CUDA support, no nvcc required
 ```
+
+:warning: change `-arch=` in meson.build to your system!
