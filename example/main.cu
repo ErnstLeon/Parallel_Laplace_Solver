@@ -6,9 +6,7 @@
 #include <thread>
 #include <unistd.h>
 
-#include <matrix_type.hpp>
-
-#include <flow_type_cuda.hpp>
+#include "flow_type_cuda.hpp"
 
 int main(int argc, char **argv){
 
@@ -34,7 +32,7 @@ int main(int argc, char **argv){
 
   std::string output_filename = "velocities_out.dat";
 
-  matrix<T> init{x_dim, y_dim, static_cast<T>(0)};
+  flow::matrix<T> init{x_dim, y_dim, static_cast<T>(0)};
 
   for(int i = 0; i <= x_dim / 4; ++i) init(i, 0) = T(14);
   for(int i = x_dim / 4 + 1; i < x_dim / 2; ++i) init(i, 0) = T(14) - (T(i) - T(x_dim) / T(4)) * T(56) / T(x_dim);
@@ -49,7 +47,7 @@ int main(int argc, char **argv){
   for(int i = 3 * y_dim / 4; i < y_dim; ++i) init(0, i) = T(7);
 
 
-  flow<T> psi {std::move(init), 10000};
+  flow::flow<T> psi {std::move(init), 10000};
   psi.solve();
 
   std::cout << psi.get_runtime() << std::endl;
