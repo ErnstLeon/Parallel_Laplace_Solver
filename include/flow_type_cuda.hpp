@@ -180,7 +180,7 @@ inline void flow<T>::jacobi()
     // local grid size is set to 32 * 32
     threadsPerBlockGrid = dim3(32, 32);
     // the inner grid without boundaries (-2) is split into blocks
-    BlockGrid = dim3((x_dim - 2 + 31) / 32, (y_dim - 2 + 31) / 32);
+    BlockGrid = dim3((y_dim - 2 + 31) / 32, (x_dim - 2 + 31) / 32);
 
     T* device_matrix_1;
     T* device_matrix_2;

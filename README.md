@@ -123,8 +123,6 @@ Add `-DUSE_DOUBLE` to enable double precision.
 
 :warning: change `-arch=` to your system!
 
-:warning: only works for square problems right now!
-
 and run with:
 
 ```bash 
@@ -153,3 +151,7 @@ project('Fluid', ['cpp', 'cuda'])  # Enable both C++ and CUDA languages; require
 ```
 
 :warning: change `-arch=` in meson.build to your system!
+
+```bash
+cuda_args: ['-arch=sm_75', '-Xcompiler=-O3,-march=native']
+```
