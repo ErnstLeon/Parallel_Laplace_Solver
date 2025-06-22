@@ -1,0 +1,103 @@
+name: Build and Test Laplace Flow Solver
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: gcc  # Docker Hub official image
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update --yes
+          apt-get install --yes gfortran-12
+          ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran
+          apt-get install --yes meson ninja-build libopenmpi-dev openmpi-bin
+  #        gfortran-12 openmpi-bin libopenmpi-dev
+  #        ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran
+
+      - name: Configure with Meson
+        working-directory: test
+        run: meson setup builddir
+
+      - name: Build test targets
+        working-directory: test/builddir
+        run: |
+          meson compile test_omp
+          # meson compile test_cuda
+          meson compile test_mpi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            test/builddir/test_omp
+            test/builddir/test_mpi
+            # test/builddir/test_cuda
+
+  run:
+    needs: build
+    runs-on: ubuntu-latest
+    container: gcc
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update --yes
+          apt-get install --yes gfortran-12
+          ln -sf /usr/bin/gfortran-12 /usr/bin/gfortran
+          apt-get install --yes meson ninja-build libopenmpi-dev openmpi-bin
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: test/builddir
+
+      - name: Run tests
+        working-directory: test/builddir
+        run: |
+          chmod +x ./test_omp
+          chmod +x ./test_mpi
+          ./test_omp -x_dim 100 -y_dim 100 -nthreads 4
+          # ./test_cuda -x_dim 10 -y_dim 10
+          mpirun --allow-run-as-root -np 2 ./test_mpi -x_dim 100 -y_dim 100 -nthreads 4
+
+      - name: Upload output artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-artifacts
+          path: |
+            test/builddir/velocities_out_omp.dat
+            test/builddir/velocities_out_mpi.dat
+            # test/builddir/velocities_out_cuda.dat
+
+  compare:
+    needs: run
+    runs-on: ubuntu-latest
+    container: gcc
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download result artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: result-artifacts
+          path: test/builddir
+
+      - name: Compare outputs
+        working-directory: test/builddir
+        run: |
+          # diff velocities_out_omp.dat velocities_out_cuda.dat
+          diff velocities_out_omp.dat velocities_out_mpi.dat

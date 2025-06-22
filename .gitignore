@@ -1,6 +1,5 @@
 *
 !.gitignore
-!.gitlab-ci.yml
 
 !/example
 !/example/*.cu
@@ -19,6 +18,10 @@
 !/test/*.cu
 !/test/*.cpp
 !/test/meson.build
+
+!.github/
+!.github/workflows
+!.github/workflows/ci.yml
 
 .vscode/
 .DS_Store
