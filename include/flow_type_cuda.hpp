@@ -34,9 +34,9 @@ inline cudaError_t checkCuda(cudaError_t result)
     of the full old matrix including the boundary falues
 */
 template<typename T>
-__global__ void cuda_jacobi(T* old_matrix, T* next_matrix, int x_dim, int y_dim){
+__global__ void cuda_jacobi(T* __restrict__ old_matrix, T* __restrict__ next_matrix, int x_dim, int y_dim){
 
-    __shared__ float shared_old_matrix[32 + 2][32 + 2];
+    __shared__ T shared_old_matrix[32 + 2][32 + 2];
 
     // Calculate the index in the full matrix for each thread
     // (+1 as the inner matrix without boundaries is distributed across threads)
